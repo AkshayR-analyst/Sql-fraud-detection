@@ -1,4 +1,3 @@
--- Create Database
 CREATE DATABASE fraud_detection;
 USE fraud_detection;
 
@@ -216,114 +215,367 @@ INSERT INTO fraud_alerts (customer_id, account_id, alert_type, alert_description
 (18, 18, 'Suspicious Login', 'Login from unknown location', 'Medium', '2026-06-05 12:05:00', 'Investigating'),
 (20, 20, 'Blocked Account', 'Multiple attempts on blocked account', 'High', '2026-06-05 12:10:00', 'Open');
 
--- multiple location in short time
-SELECT 
-    c.full_name,
-    t.account_id,
-    COUNT(t.transaction_id) AS total_transactions,
-    COUNT(DISTINCT t.location) AS different_locations,
-    MIN(t.transaction_date) AS first_transaction,
-    MAX(t.transaction_date) AS last_transaction
-FROM transactions t
-JOIN customers c 
-ON t.account_id = c.customer_id
-GROUP BY c.full_name, t.account_id
-HAVING COUNT(DISTINCT t.location) > 1
-ORDER BY different_locations DESC;
 
--- large amount transaction
-SELECT 
-    c.full_name,
-    t.account_id,
-    t.transaction_type,
-    t.amount,
-    t.location,
-    t.transaction_date,
-    t.status
-FROM transactions t
-JOIN customers c
-ON t.account_id = c.customer_id
-WHERE t.amount > 50000
-ORDER BY t.amount DESC;
+-- Table 6: Branches
+CREATE TABLE branches (
+    branch_id INT PRIMARY KEY AUTO_INCREMENT,
+    branch_name VARCHAR(100) NOT NULL,
+    branch_code VARCHAR(20) UNIQUE NOT NULL,
+    city VARCHAR(50) NOT NULL,
+    state VARCHAR(50) NOT NULL,
+    phone VARCHAR(15),
+    manager_name VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+INSERT INTO branches (branch_name, branch_code, city, state, phone, manager_name) VALUES
+('Mumbai Main Branch', 'MUM001', 'Mumbai', 'Maharashtra', '9876501001', 'Ramesh Shah'),
+('Mumbai West Branch', 'MUM002', 'Mumbai', 'Maharashtra', '9876501002', 'Suresh Nair'),
+('Delhi Central Branch', 'DEL001', 'Delhi', 'Delhi', '9876501003', 'Amit Khanna'),
+('Delhi North Branch', 'DEL002', 'Delhi', 'Delhi', '9876501004', 'Priya Malhotra'),
+('Chennai Main Branch', 'CHE001', 'Chennai', 'Tamil Nadu', '9876501005', 'Rajan Pillai'),
+('Chennai South Branch', 'CHE002', 'Chennai', 'Tamil Nadu', '9876501006', 'Meena Iyer'),
+('Pune Central Branch', 'PUN001', 'Pune', 'Maharashtra', '9876501007', 'Vijay Joshi'),
+('Pune East Branch', 'PUN002', 'Pune', 'Maharashtra', '9876501008', 'Sneha Patil'),
+('Bangalore Main Branch', 'BAN001', 'Bangalore', 'Karnataka', '9876501009', 'Kiran Kumar'),
+('Bangalore North Branch', 'BAN002', 'Bangalore', 'Karnataka', '9876501010', 'Deepa Rao'),
+('Hyderabad Main Branch', 'HYD001', 'Hyderabad', 'Telangana', '9876501011', 'Srinivas Reddy'),
+('Hyderabad West Branch', 'HYD002', 'Hyderabad', 'Telangana', '9876501012', 'Lakshmi Devi'),
+('Kolkata Main Branch', 'KOL001', 'Kolkata', 'West Bengal', '9876501013', 'Subhash Bose'),
+('Kolkata East Branch', 'KOL002', 'Kolkata', 'West Bengal', '9876501014', 'Ananya Sen'),
+('Jaipur Main Branch', 'JAI001', 'Jaipur', 'Rajasthan', '9876501015', 'Rajesh Sharma'),
+('Jaipur West Branch', 'JAI002', 'Jaipur', 'Rajasthan', '9876501016', 'Sunita Gupta'),
+('Ahmedabad Main Branch', 'AHM001', 'Ahmedabad', 'Gujarat', '9876501017', 'Nikhil Patel'),
+('Ahmedabad East Branch', 'AHM002', 'Ahmedabad', 'Gujarat', '9876501018', 'Kavya Shah'),
+('Lucknow Main Branch', 'LUC001', 'Lucknow', 'Uttar Pradesh', '9876501019', 'Arun Mishra'),
+('Lucknow North Branch', 'LUC002', 'Lucknow', 'Uttar Pradesh', '9876501020', 'Pooja Singh'),
+('Bhopal Main Branch', 'BHO001', 'Bhopal', 'Madhya Pradesh', '9876501021', 'Manoj Tiwari'),
+('Bhopal East Branch', 'BHO002', 'Bhopal', 'Madhya Pradesh', '9876501022', 'Divya Yadav');
 
--- multiple failed logins
-SELECT 
-    c.full_name,
-    l.customer_id,
-    COUNT(l.log_id) AS total_attempts,
-    SUM(CASE WHEN l.status = 'Failed' 
-        THEN 1 ELSE 0 END) AS failed_attempts,
-    COUNT(DISTINCT l.ip_address) AS different_devices,
-    COUNT(DISTINCT l.location) AS different_locations,
-    MIN(l.login_time) AS first_attempt,
-    MAX(l.login_time) AS last_attempt
-FROM login_logs l
-JOIN customers c
-ON l.customer_id = c.customer_id
-GROUP BY c.full_name, l.customer_id
-HAVING SUM(CASE WHEN l.status = 'Failed' 
-    THEN 1 ELSE 0 END) >= 2
-ORDER BY failed_attempts DESC;
+-- Table 7: Cards
+CREATE TABLE cards (
+    card_id INT PRIMARY KEY AUTO_INCREMENT,
+    account_id INT NOT NULL,
+    customer_id INT NOT NULL,
+    card_number VARCHAR(20) UNIQUE NOT NULL,
+    card_type ENUM('Debit', 'Credit') NOT NULL,
+    card_status ENUM('Active', 'Blocked', 'Expired') DEFAULT 'Active',
+    expiry_date DATE NOT NULL,
+    credit_limit DECIMAL(10,2) DEFAULT 0.00,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (account_id) REFERENCES accounts(account_id),
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+);
+INSERT INTO cards (account_id, customer_id, card_number, card_type, card_status, expiry_date, credit_limit) VALUES
+(1, 1, '4111111111111001', 'Debit', 'Active', '2028-06-30', 0.00),
+(2, 2, '4111111111111002', 'Credit', 'Active', '2027-12-31', 50000.00),
+(3, 3, '4111111111111003', 'Debit', 'Active', '2029-03-31', 0.00),
+(4, 4, '4111111111111004', 'Credit', 'Blocked', '2027-06-30', 75000.00),
+(5, 5, '4111111111111005', 'Debit', 'Active', '2028-09-30', 0.00),
+(6, 6, '4111111111111006', 'Credit', 'Active', '2027-03-31', 100000.00),
+(7, 7, '4111111111111007', 'Debit', 'Expired', '2025-12-31', 0.00),
+(8, 8, '4111111111111008', 'Credit', 'Blocked', '2027-09-30', 80000.00),
+(9, 9, '4111111111111009', 'Debit', 'Active', '2029-06-30', 0.00),
+(10, 10, '4111111111111010', 'Credit', 'Blocked', '2026-12-31', 60000.00),
+(11, 11, '4111111111111011', 'Debit', 'Active', '2028-03-31', 0.00),
+(12, 12, '4111111111111012', 'Credit', 'Active', '2027-06-30', 45000.00),
+(13, 13, '4111111111111013', 'Debit', 'Active', '2029-09-30', 0.00),
+(14, 14, '4111111111111014', 'Credit', 'Active', '2028-12-31', 55000.00),
+(15, 15, '4111111111111015', 'Debit', 'Expired', '2025-06-30', 0.00),
+(16, 16, '4111111111111016', 'Credit', 'Active', '2027-03-31', 90000.00),
+(17, 17, '4111111111111017', 'Debit', 'Active', '2028-06-30', 0.00),
+(18, 18, '4111111111111018', 'Credit', 'Blocked', '2026-09-30', 70000.00),
+(19, 19, '4111111111111019', 'Debit', 'Active', '2029-03-31', 0.00),
+(20, 20, '4111111111111020', 'Credit', 'Blocked', '2026-06-30', 65000.00),
+(21, 21, '4111111111111021', 'Debit', 'Active', '2028-09-30', 0.00),
+(22, 22, '4111111111111022', 'Credit', 'Active', '2027-12-31', 85000.00);
 
--- blocked account activity
-SELECT 
-    c.full_name,
-    a.account_number,
-    a.account_type,
-    a.status AS account_status,
-    t.transaction_type,
-    t.amount,
-    t.location,
-    t.transaction_date
-FROM transactions t
-JOIN accounts a
-ON t.account_id = a.account_id
-JOIN customers c
-ON a.customer_id = c.customer_id
-WHERE a.status = 'Blocked'
-ORDER BY t.transaction_date DESC;
+-- Table 8: Beneficiaries
+CREATE TABLE beneficiaries (
+    beneficiary_id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT NOT NULL,
+    beneficiary_name VARCHAR(100) NOT NULL,
+    beneficiary_account VARCHAR(20) NOT NULL,
+    bank_name VARCHAR(100) NOT NULL,
+    ifsc_code VARCHAR(20) NOT NULL,
+    city VARCHAR(50),
+    status ENUM('Active', 'Inactive') DEFAULT 'Active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+);
+INSERT INTO beneficiaries (customer_id, beneficiary_name, beneficiary_account, bank_name, ifsc_code, city, status) VALUES
+(1, 'Rahul Sharma', 'BEN100001', 'SBI', 'SBIN0001001', 'Mumbai', 'Active'),
+(1, 'Priya Mehta', 'BEN100002', 'HDFC', 'HDFC0001002', 'Delhi', 'Active'),
+(2, 'Amit Kumar', 'BEN100003', 'ICICI', 'ICIC0001003', 'Chennai', 'Active'),
+(3, 'Sneha Nair', 'BEN100004', 'Axis', 'UTIB0001004', 'Pune', 'Active'),
+(4, 'Vijay Singh', 'BEN100005', 'SBI', 'SBIN0001005', 'Bangalore', 'Inactive'),
+(5, 'Deepa Iyer', 'BEN100006', 'HDFC', 'HDFC0001006', 'Hyderabad', 'Active'),
+(6, 'Karan Das', 'BEN100007', 'ICICI', 'ICIC0001007', 'Kolkata', 'Active'),
+(7, 'Ananya Roy', 'BEN100008', 'Axis', 'UTIB0001008', 'Jaipur', 'Active'),
+(8, 'Suresh Pillai', 'BEN100009', 'SBI', 'SBIN0001009', 'Mumbai', 'Inactive'),
+(9, 'Meena Gupta', 'BEN100010', 'HDFC', 'HDFC0001010', 'Delhi', 'Active'),
+(10, 'Ravi Verma', 'BEN100011', 'ICICI', 'ICIC0001011', 'Chennai', 'Active'),
+(11, 'Pooja Reddy', 'BEN100012', 'Axis', 'UTIB0001012', 'Pune', 'Active'),
+(12, 'Arun Joshi', 'BEN100013', 'SBI', 'SBIN0001013', 'Bangalore', 'Active'),
+(13, 'Kavya Nair', 'BEN100014', 'HDFC', 'HDFC0001014', 'Hyderabad', 'Inactive'),
+(14, 'Nikhil Kumar', 'BEN100015', 'ICICI', 'ICIC0001015', 'Kolkata', 'Active'),
+(15, 'Sita Sharma', 'BEN100016', 'Axis', 'UTIB0001016', 'Jaipur', 'Active'),
+(16, 'Manoj Iyer', 'BEN100017', 'SBI', 'SBIN0001017', 'Mumbai', 'Active'),
+(17, 'Deepa Singh', 'BEN100018', 'HDFC', 'HDFC0001018', 'Delhi', 'Active'),
+(18, 'Arjun Das', 'BEN100019', 'ICICI', 'ICIC0001019', 'Chennai', 'Inactive'),
+(19, 'Lakshmi Roy', 'BEN100020', 'Axis', 'UTIB0001020', 'Pune', 'Active'),
+(20, 'Rohit Pillai', 'BEN100021', 'SBI', 'SBIN0001021', 'Bangalore', 'Active'),
+(21, 'Sunita Verma', 'BEN100022', 'HDFC', 'HDFC0001022', 'Hyderabad', 'Active');
 
--- high risk alerts
-SELECT 
-    c.full_name,
-    f.alert_type,
-    f.alert_description,
-    f.risk_level,
-    f.alert_date,
-    f.status AS alert_status
-FROM fraud_alerts f
-JOIN customers c
-ON f.customer_id = c.customer_id
-WHERE f.risk_level = 'High'
-ORDER BY f.alert_date DESC;
+-- Table 9: Devices
+CREATE TABLE devices (
+    device_id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT NOT NULL,
+    device_name VARCHAR(100) NOT NULL,
+    device_type ENUM('Mobile', 'Laptop', 'Tablet', 'Desktop') NOT NULL,
+    operating_system VARCHAR(50),
+    ip_address VARCHAR(50),
+    location VARCHAR(100),
+    status ENUM('Trusted', 'Suspicious', 'Blocked') DEFAULT 'Trusted',
+    last_used TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+);
+INSERT INTO devices (customer_id, device_name, device_type, operating_system, ip_address, location, status) VALUES
+(1, 'Amit iPhone 13', 'Mobile', 'iOS 16', '192.168.1.1', 'Mumbai', 'Trusted'),
+(1, 'Amit MacBook', 'Laptop', 'MacOS', '192.168.1.2', 'Delhi', 'Suspicious'),
+(1, 'Unknown Device', 'Mobile', 'Android 12', '192.168.1.3', 'Chennai', 'Blocked'),
+(2, 'Priya Samsung S21', 'Mobile', 'Android 13', '192.168.2.1', 'Delhi', 'Trusted'),
+(3, 'Rahul iPhone 12', 'Mobile', 'iOS 15', '192.168.3.1', 'Chennai', 'Trusted'),
+(4, 'Sneha Laptop', 'Laptop', 'Windows 11', '192.168.4.1', 'Pune', 'Trusted'),
+(4, 'Sneha Tablet', 'Tablet', 'Android 12', '192.168.4.2', 'Bangalore', 'Suspicious'),
+(5, 'Karan Desktop', 'Desktop', 'Windows 10', '192.168.5.1', 'Bangalore', 'Trusted'),
+(6, 'Divya iPhone 14', 'Mobile', 'iOS 16', '192.168.6.1', 'Hyderabad', 'Trusted'),
+(7, 'Vijay Samsung A52', 'Mobile', 'Android 11', '192.168.7.1', 'Kolkata', 'Trusted'),
+(7, 'Unknown Laptop', 'Laptop', 'Windows 10', '192.168.7.2', 'Delhi', 'Blocked'),
+(8, 'Ananya iPhone 11', 'Mobile', 'iOS 15', '192.168.8.1', 'Jaipur', 'Trusted'),
+(8, 'Unknown Mobile', 'Mobile', 'Android 10', '192.168.8.2', 'Mumbai', 'Blocked'),
+(9, 'Suresh Laptop', 'Laptop', 'Windows 11', '192.168.9.1', 'Mumbai', 'Trusted'),
+(10, 'Meena Tablet', 'Tablet', 'iOS 15', '192.168.10.1', 'Delhi', 'Suspicious'),
+(10, 'Unknown Device', 'Mobile', 'Android 12', '192.168.10.2', 'Chennai', 'Blocked'),
+(11, 'Ravi Samsung S20', 'Mobile', 'Android 13', '192.168.11.1', 'Chennai', 'Trusted'),
+(12, 'Pooja iPhone 13', 'Mobile', 'iOS 16', '192.168.12.1', 'Pune', 'Trusted'),
+(13, 'Arun Desktop', 'Desktop', 'Windows 10', '192.168.13.1', 'Bangalore', 'Trusted'),
+(14, 'Kavya Laptop', 'Laptop', 'MacOS', '192.168.14.1', 'Hyderabad', 'Trusted'),
+(15, 'Nikhil Mobile', 'Mobile', 'Android 11', '192.168.15.1', 'Kolkata', 'Trusted'),
+(16, 'Sita iPhone 12', 'Mobile', 'iOS 15', '192.168.16.1', 'Jaipur', 'Trusted');
 
--- customer wise fraud report
-SELECT 
-    c.full_name,
-    c.city,
-    COUNT(DISTINCT f.alert_id) AS total_alerts,
-    SUM(CASE WHEN f.risk_level = 'High' 
-        THEN 1 ELSE 0 END) AS high_risk_count,
-    SUM(CASE WHEN f.risk_level = 'Medium' 
-        THEN 1 ELSE 0 END) AS medium_risk_count,
-    SUM(CASE WHEN f.risk_level = 'Low' 
-        THEN 1 ELSE 0 END) AS low_risk_count,
-    SUM(CASE WHEN f.status = 'Open' 
-        THEN 1 ELSE 0 END) AS open_alerts,
-    CASE 
-        WHEN SUM(CASE WHEN f.risk_level = 'High' 
-            THEN 1 ELSE 0 END) >= 2 
-            THEN 'Extremely Suspicious'
-        WHEN SUM(CASE WHEN f.risk_level = 'High' 
-            THEN 1 ELSE 0 END) = 1 
-            THEN 'Suspicious'
-        ELSE 'Normal'
-    END AS customer_risk_status
-FROM fraud_alerts f
-JOIN customers c
-ON f.customer_id = c.customer_id
-GROUP BY c.full_name, c.city
-ORDER BY high_risk_count DESC;
+-- Table 10: OTPs
+CREATE TABLE otps (
+    otp_id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT NOT NULL,
+    otp_code VARCHAR(10) NOT NULL,
+    otp_type ENUM('Login', 'Transaction', 'Password Reset') NOT NULL,
+    status ENUM('Used', 'Expired', 'Pending') DEFAULT 'Pending',
+    generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP,
+    attempts INT DEFAULT 0,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+);
+INSERT INTO otps (customer_id, otp_code, otp_type, status, generated_at, expires_at, attempts) VALUES
+(1, '123456', 'Login', 'Used', '2026-06-01 08:54:00', '2026-06-01 08:59:00', 1),
+(1, '234567', 'Transaction', 'Expired', '2026-06-01 08:58:00', '2026-06-01 09:03:00', 3),
+(1, '345678', 'Password Reset', 'Used', '2026-06-01 09:00:00', '2026-06-01 09:05:00', 1),
+(2, '456789', 'Login', 'Used', '2026-06-01 09:00:00', '2026-06-01 09:05:00', 1),
+(3, '567890', 'Transaction', 'Used', '2026-06-02 10:00:00', '2026-06-02 10:05:00', 1),
+(4, '678901', 'Login', 'Expired', '2026-06-02 10:01:00', '2026-06-02 10:06:00', 3),
+(4, '789012', 'Transaction', 'Used', '2026-06-02 11:00:00', '2026-06-02 11:05:00', 2),
+(5, '890123', 'Login', 'Used', '2026-06-02 11:00:00', '2026-06-02 11:05:00', 1),
+(6, '901234', 'Transaction', 'Used', '2026-06-03 09:00:00', '2026-06-03 09:05:00', 1),
+(7, '012345', 'Login', 'Expired', '2026-06-03 09:04:00', '2026-06-03 09:09:00', 3),
+(7, '112345', 'Password Reset', 'Used', '2026-06-03 09:08:00', '2026-06-03 09:13:00', 1),
+(8, '223456', 'Transaction', 'Expired', '2026-06-03 10:01:00', '2026-06-03 10:06:00', 3),
+(8, '334567', 'Login', 'Used', '2026-06-03 10:03:00', '2026-06-03 10:08:00', 2),
+(9, '445678', 'Transaction', 'Used', '2026-06-03 11:00:00', '2026-06-03 11:05:00', 1),
+(10, '556789', 'Login', 'Expired', '2026-06-04 09:59:00', '2026-06-04 10:04:00', 3),
+(10, '667890', 'Password Reset', 'Pending', '2026-06-04 10:03:00', '2026-06-04 10:08:00', 0),
+(11, '778901', 'Transaction', 'Used', '2026-06-04 09:02:00', '2026-06-04 09:07:00', 1),
+(12, '889012', 'Login', 'Used', '2026-06-04 10:00:00', '2026-06-04 10:05:00', 1),
+(13, '990123', 'Transaction', 'Used', '2026-06-05 09:00:00', '2026-06-05 09:05:00', 1),
+(14, '101234', 'Login', 'Used', '2026-06-05 10:00:00', '2026-06-05 10:05:00', 1),
+(15, '202345', 'Transaction', 'Pending', '2026-06-05 11:00:00', '2026-06-05 11:05:00', 0),
+(16, '303456', 'Login', 'Used', '2026-06-05 11:01:00', '2026-06-05 11:06:00', 1);
 
+-- Table 11: Blacklist
+CREATE TABLE blacklist (
+    blacklist_id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT NOT NULL,
+    reason VARCHAR(255) NOT NULL,
+    blacklisted_by VARCHAR(100) NOT NULL,
+    blacklist_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('Active', 'Removed') DEFAULT 'Active',
+    remarks TEXT,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+);
+INSERT INTO blacklist (customer_id, reason, blacklisted_by, blacklist_date, status, remarks) VALUES
+(1, 'Multiple fraud transactions detected', 'Risk Team', '2026-06-01 10:00:00', 'Active', 'Customer flagged for immediate investigation'),
+(4, 'Large suspicious transfers', 'Risk Team', '2026-06-02 12:00:00', 'Active', 'Two transfers above 60000 in 5 minutes'),
+(7, 'Multiple failed login attempts', 'Security Team', '2026-06-03 10:00:00', 'Active', 'Possible hacking attempt detected'),
+(8, 'Large withdrawals from multiple cities', 'Risk Team', '2026-06-03 11:00:00', 'Active', 'Withdrawals from Delhi and Chennai in 2 minutes'),
+(10, 'Blocked account activity', 'Security Team', '2026-06-04 10:00:00', 'Removed', 'Issue resolved after investigation'),
+(11, 'Suspicious location transactions', 'Risk Team', '2026-06-04 10:00:00', 'Active', 'Transactions from multiple cities detected'),
+(16, 'Multiple high value withdrawals', 'Risk Team', '2026-06-05 12:00:00', 'Active', 'Withdrawals above limit in short time'),
+(20, 'Blocked account misuse', 'Security Team', '2026-06-05 12:00:00', 'Active', 'Multiple attempts on blocked account'),
+(2, 'Suspicious large deposit', 'Risk Team', '2026-06-01 11:00:00', 'Removed', 'Verified legitimate deposit'),
+(3, 'Unusual withdrawal pattern', 'Risk Team', '2026-06-02 12:00:00', 'Removed', 'Customer verified identity'),
+(5, 'Login from unknown location', 'Security Team', '2026-06-02 13:00:00', 'Removed', 'Customer confirmed travel'),
+(6, 'Large balance movement', 'Risk Team', '2026-06-03 10:00:00', 'Removed', 'Business account verified'),
+(9, 'Transfer to unknown account', 'Risk Team', '2026-06-03 12:00:00', 'Active', 'Under investigation'),
+(12, 'New device login', 'Security Team', '2026-06-04 11:00:00', 'Removed', 'Customer confirmed new device'),
+(13, 'Large transfer to new beneficiary', 'Risk Team', '2026-06-05 10:00:00', 'Active', 'Beneficiary details being verified'),
+(14, 'Unusual transaction time', 'Security Team', '2026-06-05 11:00:00', 'Removed', 'Customer confirmed transaction'),
+(15, 'Pending transaction issue', 'Risk Team', '2026-06-05 12:00:00', 'Removed', 'Technical issue resolved'),
+(17, 'Large balance movement', 'Risk Team', '2026-06-05 13:00:00', 'Active', 'Under investigation'),
+(18, 'Login from unknown location', 'Security Team', '2026-06-05 13:00:00', 'Active', 'Customer not reachable'),
+(19, 'Suspicious transfer pattern', 'Risk Team', '2026-06-05 14:00:00', 'Removed', 'Customer verified transaction'),
+(21, 'Multiple OTP attempts', 'Security Team', '2026-06-05 14:00:00', 'Active', 'Possible hacking attempt'),
+(22, 'Unusual login pattern', 'Security Team', '2026-06-05 15:00:00', 'Removed', 'Customer confirmed login');
 
+-- Table 12: Investigation
+CREATE TABLE investigation (
+    investigation_id INT PRIMARY KEY AUTO_INCREMENT,
+    alert_id INT NOT NULL,
+    customer_id INT NOT NULL,
+    assigned_to VARCHAR(100) NOT NULL,
+    investigation_status ENUM('Open', 'In Progress', 'Closed') DEFAULT 'Open',
+    priority ENUM('Low', 'Medium', 'High', 'Critical') DEFAULT 'Medium',
+    started_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    closed_date TIMESTAMP NULL,
+    findings TEXT,
+    action_taken TEXT,
+    FOREIGN KEY (alert_id) REFERENCES fraud_alerts(alert_id),
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+);
+INSERT INTO investigation (alert_id, customer_id, assigned_to, investigation_status, priority, started_date, closed_date, findings, action_taken) VALUES
+(1, 1, 'Rajesh Kumar', 'In Progress', 'Critical', '2026-06-01 10:00:00', NULL, 'Multiple city transactions detected', 'Account temporarily blocked'),
+(2, 1, 'Priya Sharma', 'In Progress', 'High', '2026-06-01 10:30:00', NULL, 'Failed logins from different cities', 'Password reset initiated'),
+(3, 4, 'Amit Singh', 'Open', 'Critical', '2026-06-02 12:00:00', NULL, 'Large transfers detected', 'Under investigation'),
+(4, 4, 'Deepa Nair', 'Open', 'High', '2026-06-02 12:30:00', NULL, 'Suspicious login pattern', 'Device blocked'),
+(5, 7, 'Vijay Iyer', 'In Progress', 'High', '2026-06-03 10:00:00', NULL, 'Multiple failed logins', 'Account under review'),
+(6, 8, 'Sneha Pillai', 'Open', 'Critical', '2026-06-03 11:00:00', NULL, 'Large withdrawals detected', 'Withdrawals blocked'),
+(7, 10, 'Karan Verma', 'Closed', 'Medium', '2026-06-04 09:00:00', '2026-06-04 11:00:00', 'Blocked account transaction', 'Account verified and unblocked'),
+(8, 10, 'Ananya Das', 'Open', 'High', '2026-06-04 10:00:00', NULL, 'Multiple failed logins', 'Security alert sent'),
+(9, 11, 'Suresh Menon', 'In Progress', 'Critical', '2026-06-04 10:00:00', NULL, 'Suspicious city transactions', 'Customer contacted'),
+(10, 16, 'Meena Joshi', 'Open', 'Critical', '2026-06-05 12:00:00', NULL, 'High value withdrawals', 'Transaction limit reduced'),
+(11, 2, 'Ravi Tiwari', 'Closed', 'Low', '2026-06-01 11:00:00', '2026-06-01 13:00:00', 'Large deposit verified', 'No action needed'),
+(12, 3, 'Pooja Gupta', 'Closed', 'Low', '2026-06-02 12:00:00', '2026-06-02 14:00:00', 'Withdrawal pattern normal', 'Case closed'),
+(13, 5, 'Arun Kumar', 'Closed', 'Low', '2026-06-02 13:00:00', '2026-06-02 15:00:00', 'Travel confirmed by customer', 'Case closed'),
+(14, 6, 'Kavya Singh', 'Closed', 'Low', '2026-06-03 10:00:00', '2026-06-03 12:00:00', 'Business account verified', 'Case closed'),
+(15, 9, 'Nikhil Sharma', 'In Progress', 'Medium', '2026-06-03 12:00:00', NULL, 'Transfer to unknown account', 'Beneficiary details checked'),
+(16, 12, 'Sita Iyer', 'Closed', 'Low', '2026-06-04 11:00:00', '2026-06-04 13:00:00', 'New device confirmed', 'Device added to trusted list'),
+(17, 13, 'Manoj Pillai', 'In Progress', 'Medium', '2026-06-05 10:00:00', NULL, 'Large transfer investigation', 'Beneficiary verification pending'),
+(18, 14, 'Deepa Verma', 'Closed', 'Low', '2026-06-05 11:00:00', '2026-06-05 13:00:00', 'Transaction confirmed by customer', 'Case closed'),
+(19, 15, 'Arjun Das', 'Closed', 'Low', '2026-06-05 12:00:00', '2026-06-05 14:00:00', 'Technical issue resolved', 'Case closed'),
+(20, 17, 'Lakshmi Nair', 'In Progress', 'Medium', '2026-06-05 13:00:00', NULL, 'Balance movement under review', 'Customer contacted'),
+(21, 18, 'Rohit Sharma', 'Open', 'High', '2026-06-05 13:00:00', NULL, 'Unknown location login', 'Customer not reachable'),
+(22, 20, 'Sunita Pillai', 'Open', 'Critical', '2026-06-05 15:00:00', NULL, 'Blocked account misuse', 'Immediate action required');
 
+-- Table 13: Notifications
+CREATE TABLE notifications (
+    notification_id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT NOT NULL,
+    notification_type ENUM('SMS', 'Email', 'App') NOT NULL,
+    message TEXT NOT NULL,
+    status ENUM('Sent', 'Failed', 'Pending') DEFAULT 'Pending',
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    read_status ENUM('Read', 'Unread') DEFAULT 'Unread',
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+);
+INSERT INTO notifications (customer_id, notification_type, message, status, sent_at, read_status) VALUES
+(1, 'SMS', 'Alert: Suspicious transaction detected on your account', 'Sent', '2026-06-01 09:15:00', 'Read'),
+(1, 'Email', 'Your account has been temporarily blocked due to suspicious activity', 'Sent', '2026-06-01 09:20:00', 'Read'),
+(1, 'App', 'Multiple login attempts detected on your account', 'Sent', '2026-06-01 09:25:00', 'Unread'),
+(2, 'SMS', 'Large deposit of 50000 detected on your account', 'Sent', '2026-06-01 10:10:00', 'Read'),
+(3, 'Email', 'Unusual withdrawal pattern detected', 'Sent', '2026-06-02 11:10:00', 'Read'),
+(4, 'SMS', 'Alert: Large transfer detected on your account', 'Sent', '2026-06-02 11:15:00', 'Unread'),
+(4, 'App', 'Suspicious login detected from new location', 'Sent', '2026-06-02 11:20:00', 'Unread'),
+(5, 'Email', 'Login detected from new location', 'Sent', '2026-06-02 12:10:00', 'Read'),
+(6, 'SMS', 'Large balance movement detected', 'Sent', '2026-06-03 09:10:00', 'Read'),
+(7, 'App', 'Multiple failed login attempts detected', 'Sent', '2026-06-03 09:15:00', 'Unread'),
+(7, 'SMS', 'Your account password has been reset', 'Sent', '2026-06-03 09:20:00', 'Read'),
+(8, 'Email', 'Alert: Large withdrawals detected on your account', 'Sent', '2026-06-03 10:10:00', 'Unread'),
+(8, 'App', 'Suspicious transaction blocked successfully', 'Sent', '2026-06-03 10:15:00', 'Unread'),
+(9, 'SMS', 'Transfer to new beneficiary detected', 'Sent', '2026-06-03 11:10:00', 'Read'),
+(10, 'Email', 'Multiple failed login attempts on your account', 'Failed', '2026-06-04 10:10:00', 'Unread'),
+(10, 'App', 'Your account has been flagged for review', 'Sent', '2026-06-04 10:15:00', 'Unread'),
+(11, 'SMS', 'Suspicious transaction detected from new city', 'Sent', '2026-06-04 09:15:00', 'Read'),
+(12, 'Email', 'New device login detected on your account', 'Sent', '2026-06-04 10:10:00', 'Read'),
+(13, 'App', 'Large transfer to new beneficiary detected', 'Sent', '2026-06-05 09:10:00', 'Unread'),
+(14, 'SMS', 'Transaction completed successfully', 'Sent', '2026-06-05 10:10:00', 'Read'),
+(15, 'Email', 'Your transaction is pending. Please contact bank', 'Sent', '2026-06-05 11:10:00', 'Unread'),
+(16, 'App', 'Alert: High value withdrawal detected', 'Sent', '2026-06-05 11:10:00', 'Unread');
+
+-- Table 14: Risk Scores
+CREATE TABLE risk_scores (
+    score_id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT NOT NULL,
+    score INT NOT NULL,
+    score_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    risk_category ENUM('Low', 'Medium', 'High', 'Critical') NOT NULL,
+    reason VARCHAR(255),
+    calculated_by ENUM('System', 'Manual') DEFAULT 'System',
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+);
+INSERT INTO risk_scores (customer_id, score, score_date, risk_category, reason, calculated_by) VALUES
+(1, 95, '2026-06-01 10:00:00', 'Critical', 'Multiple city transactions and failed logins', 'System'),
+(1, 98, '2026-06-02 10:00:00', 'Critical', 'Continued suspicious activity', 'Manual'),
+(2, 25, '2026-06-01 10:00:00', 'Low', 'Normal transaction pattern', 'System'),
+(3, 30, '2026-06-02 10:00:00', 'Low', 'Regular account activity', 'System'),
+(4, 85, '2026-06-02 12:00:00', 'High', 'Large transfers and suspicious login', 'System'),
+(4, 90, '2026-06-03 10:00:00', 'Critical', 'Continued high risk activity', 'Manual'),
+(5, 20, '2026-06-02 12:00:00', 'Low', 'Normal login and transactions', 'System'),
+(6, 35, '2026-06-03 10:00:00', 'Low', 'Regular business account', 'System'),
+(7, 80, '2026-06-03 10:00:00', 'High', 'Multiple failed logins detected', 'System'),
+(7, 88, '2026-06-04 10:00:00', 'High', 'Suspicious device activity', 'Manual'),
+(8, 92, '2026-06-03 11:00:00', 'Critical', 'Large withdrawals from multiple cities', 'System'),
+(9, 45, '2026-06-03 12:00:00', 'Medium', 'Transfer to unknown beneficiary', 'System'),
+(10, 75, '2026-06-04 10:00:00', 'High', 'Blocked account activity and failed logins', 'System'),
+(11, 82, '2026-06-04 10:00:00', 'High', 'Suspicious city transactions', 'System'),
+(12, 15, '2026-06-04 11:00:00', 'Low', 'New device verified by customer', 'Manual'),
+(13, 50, '2026-06-05 10:00:00', 'Medium', 'Large transfer to new beneficiary', 'System'),
+(14, 10, '2026-06-05 11:00:00', 'Low', 'Normal transaction activity', 'System'),
+(15, 20, '2026-06-05 12:00:00', 'Low', 'Pending transaction resolved', 'System'),
+(16, 88, '2026-06-05 12:00:00', 'High', 'Multiple high value withdrawals', 'System'),
+(17, 40, '2026-06-05 13:00:00', 'Medium', 'Large balance movement', 'System'),
+(18, 60, '2026-06-05 13:00:00', 'Medium', 'Unknown location login', 'System'),
+(20, 78, '2026-06-05 15:00:00', 'High', 'Blocked account misuse detected', 'System');
+
+-- Table 15: Audit Logs
+CREATE TABLE audit_logs (
+    audit_id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT,
+    action_type ENUM('Insert', 'Update', 'Delete', 'Login', 'Logout') NOT NULL,
+    table_name VARCHAR(100) NOT NULL,
+    description TEXT,
+    performed_by VARCHAR(100) NOT NULL,
+    ip_address VARCHAR(50),
+    action_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('Success', 'Failed') DEFAULT 'Success',
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+);
+INSERT INTO audit_logs (customer_id, action_type, table_name, description, performed_by, ip_address, status) VALUES
+(1, 'Login', 'login_logs', 'Customer logged in successfully', 'Amit Sharma', '192.168.1.1', 'Success'),
+(1, 'Insert', 'transactions', 'New transaction created', 'Amit Sharma', '192.168.1.1', 'Success'),
+(1, 'Update', 'accounts', 'Account balance updated', 'System', '192.168.1.1', 'Success'),
+(1, 'Login', 'login_logs', 'Failed login attempt', 'Unknown', '192.168.1.3', 'Failed'),
+(2, 'Login', 'login_logs', 'Customer logged in successfully', 'Priya Singh', '192.168.2.1', 'Success'),
+(2, 'Insert', 'transactions', 'Large deposit recorded', 'Priya Singh', '192.168.2.1', 'Success'),
+(3, 'Login', 'login_logs', 'Customer logged in successfully', 'Rahul Verma', '192.168.3.1', 'Success'),
+(4, 'Insert', 'transactions', 'Large transfer created', 'Sneha Patel', '192.168.4.1', 'Success'),
+(4, 'Login', 'login_logs', 'Failed login from unknown device', 'Unknown', '192.168.4.2', 'Failed'),
+(5, 'Login', 'login_logs', 'Customer logged in successfully', 'Karan Mehta', '192.168.5.1', 'Success'),
+(6, 'Insert', 'transactions', 'Normal transaction recorded', 'Divya Nair', '192.168.6.1', 'Success'),
+(7, 'Login', 'login_logs', 'Multiple failed login attempts', 'Unknown', '192.168.7.2', 'Failed'),
+(7, 'Update', 'accounts', 'Password reset performed', 'Security Team', '192.168.7.1', 'Success'),
+(8, 'Insert', 'transactions', 'Large withdrawal recorded', 'Ananya Roy', '192.168.8.1', 'Success'),
+(8, 'Update', 'fraud_alerts', 'Fraud alert status updated', 'Risk Team', '192.168.8.1', 'Success'),
+(9, 'Insert', 'transactions', 'Transfer to beneficiary recorded', 'Suresh Iyer', '192.168.9.1', 'Success'),
+(10, 'Login', 'login_logs', 'Multiple failed logins detected', 'Unknown', '192.168.10.2', 'Failed'),
+(10, 'Update', 'accounts', 'Account blocked by security team', 'Security Team', '192.168.10.1', 'Success'),
+(11, 'Insert', 'transactions', 'Suspicious transaction recorded', 'Ravi Tiwari', '192.168.11.1', 'Success'),
+(12, 'Login', 'login_logs', 'New device login recorded', 'Pooja Gupta', '192.168.12.1', 'Success'),
+(13, 'Insert', 'transactions', 'Large transfer to new beneficiary', 'Arun Das', '192.168.13.1', 'Success'),
+(16, 'Insert', 'transactions', 'High value withdrawal recorded', 'Sita Pillai', '192.168.16.1', 'Success');
